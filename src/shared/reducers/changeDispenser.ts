@@ -1,5 +1,5 @@
-import type { MachineReducer } from "../types";
-import { ChangeDispenserState } from "../states";
+import type { MachineReducer } from "@shared/types";
+import { ChangeDispenserState } from "@shared/states";
 
 // 거스름돈 반환기 리듀서
 export const changeDispenserReducer: MachineReducer = (context, action, addLog) => {

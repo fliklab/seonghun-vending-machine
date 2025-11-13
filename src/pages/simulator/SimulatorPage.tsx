@@ -8,14 +8,11 @@ import {
   DollarSign,
   Package,
 } from "lucide-react";
-import { useEffect, useReducer, useRef, useState } from "react";
-import { ModuleStatusPanel } from "../../shared/components";
-import {
-  DRINKS,
-  initialState,
-  INSUFFICIENT_BALANCE_WAIT,
-} from "../../shared/constants";
-import { vendingMachineReducer } from "../../shared/reducers";
+import { useReducer, useState, useMemo } from "react";
+import { ModuleStatusPanel } from "./components/ModuleStatusPanel";
+
+import { DRINKS, initialState } from "@shared/constants";
+import { vendingMachineReducer } from "@shared/reducers";
 import {
   BillValidatorState,
   CardReaderState,
@@ -23,293 +20,63 @@ import {
   CoinValidatorState,
   DispenserState,
   ErrorCode,
-  PaymentMethod,
   TimerState,
   VendingMachineState,
-} from "../../shared/states";
-import type { VendingMachineStateValue } from "../../shared/types";
+} from "@shared/states";
+import {
+  createBillInsertHandler,
+  createCoinInsertHandler,
+  createCardInsertHandler,
+} from "@shared/handlers/paymentHandlers";
+import { useTimerEffect } from "@shared/hooks/useTimerEffect";
+import { useInsufficientBalanceTimer } from "@shared/hooks/useInsufficientBalanceTimer";
+import { usePaymentProcessor } from "@shared/hooks/usePaymentProcessor";
+import { useChangeDispenser } from "@shared/hooks/useChangeDispenser";
+import {
+  getStateColor,
+  getStateText,
+  calculateRemainingSeconds,
+} from "@shared/utils/stateHelpers";
 
 // ===== 시뮬레이터 컴포넌트 =====
 function Simulator() {
   const [state, dispatch] = useReducer(vendingMachineReducer, initialState);
   const [isProcessing, setIsProcessing] = useState(false);
-  const insufficientBalanceTimeoutRef = useRef<number | null>(null);
 
-  // 타이머 업데이트
-  useEffect(() => {
-    if (state.timer.state === TimerState.RUNNING && state.timer.startTime) {
-      const startTime = state.timer.startTime;
-      const interval = window.setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const remaining = Math.max(0, state.timer.duration - elapsed);
-
-        dispatch({ type: "TIMER_UPDATE", remainingTime: remaining });
-
-        if (remaining === 0) {
-          dispatch({ type: "TIMER_EXPIRED" });
-          clearInterval(interval);
-        }
-      }, 100);
-
-      return () => clearInterval(interval);
-    }
-  }, [state.timer.state, state.timer.startTime]);
-
-  // 금액 부족 타이머
-  useEffect(() => {
-    if (state.insufficientBalanceTime) {
-      if (insufficientBalanceTimeoutRef.current !== null) {
-        clearTimeout(insufficientBalanceTimeoutRef.current);
-      }
-
-      insufficientBalanceTimeoutRef.current = window.setTimeout(() => {
-        dispatch({ type: "INSUFFICIENT_BALANCE_RESET" });
-      }, INSUFFICIENT_BALANCE_WAIT);
-    }
-
-    return () => {
-      if (insufficientBalanceTimeoutRef.current !== null) {
-        clearTimeout(insufficientBalanceTimeoutRef.current);
-      }
-    };
-  }, [state.insufficientBalanceTime]);
-
-  // 지폐 투입 시뮬레이션
-  const handleBillInsert = (amount: number, isFake = false) => {
-    dispatch({ type: "BILL_INSERT_START" });
-    setTimeout(() => {
-      dispatch({ type: "BILL_VALIDATING", amount });
-      setTimeout(() => {
-        // 가짜 지폐이거나 5% 확률로 거부
-        if (isFake || Math.random() > 0.95) {
-          dispatch({ type: "BILL_REJECTED", reason: "가짜 지폐 의심" });
-          setTimeout(() => {
-            dispatch({ type: "BILL_VALIDATOR_RESET" });
-          }, 1000);
-        } else {
-          dispatch({ type: "BILL_ACCEPTED", amount });
-          setTimeout(() => {
-            dispatch({ type: "BILL_STACKED" });
-            setTimeout(() => {
-              dispatch({ type: "BILL_VALIDATOR_RESET" });
-            }, 300);
-          }, 300);
-        }
-      }, 800);
-    }, 300);
-  };
-
-  // 동전 투입 시뮬레이션
-  const handleCoinInsert = (amount: number, isFake = false) => {
-    dispatch({ type: "COIN_INSERT_START" });
-    setTimeout(() => {
-      dispatch({ type: "COIN_VALIDATING", amount });
-      setTimeout(() => {
-        // 가짜 동전이거나 3% 확률로 거부
-        if (isFake || Math.random() > 0.97) {
-          dispatch({ type: "COIN_REJECTED", reason: "무게/크기 불일치" });
-          setTimeout(() => {
-            dispatch({ type: "COIN_VALIDATOR_RESET" });
-          }, 1000);
-        } else {
-          dispatch({ type: "COIN_ACCEPTED", amount });
-          setTimeout(() => {
-            dispatch({ type: "COIN_STORED" });
-            setTimeout(() => {
-              dispatch({ type: "COIN_VALIDATOR_RESET" });
-            }, 300);
-          }, 300);
-        }
-      }, 500);
-    }, 200);
-  };
-
-  // 카드 삽입
-  const handleCardInsert = () => {
-    dispatch({ type: "CARD_INSERT" });
-  };
-
-  // 음료 선택 및 결제 처리
-  useEffect(() => {
-    if (
-      state.machineState === VendingMachineState.ITEM_SELECTED &&
-      !isProcessing
-    ) {
-      setIsProcessing(true);
-
-      const selectedItem = state.selectedItem;
-      if (!selectedItem) {
-        setIsProcessing(false);
-        return;
-      }
-
-      // 재고 감소
-      dispatch({
-        type: "INVENTORY_DECREASE",
-        itemId: selectedItem.id,
-        itemName: selectedItem.name,
-      });
-
-      if (state.paymentMethod === PaymentMethod.CARD) {
-        // 카드 결제 처리
-        dispatch({ type: "CARD_READING" });
-        setTimeout(() => {
-          dispatch({
-            type: "CARD_PROCESSING",
-            amount: selectedItem.price,
-          });
-          setTimeout(() => {
-            // 85% 확률로 승인
-            if (Math.random() > 0.15) {
-              dispatch({
-                type: "CARD_APPROVED",
-                amount: selectedItem.price,
-              });
-              setTimeout(() => {
-                dispatch({ type: "DISPENSER_START", item: selectedItem });
-                setTimeout(() => {
-                  // 95% 확률로 배출 성공
-                  if (Math.random() > 0.05) {
-                    dispatch({ type: "DISPENSER_COMPLETED" });
-                    setTimeout(() => {
-                      dispatch({ type: "DISPENSER_RESET" });
-                    }, 500);
-                  } else {
-                    dispatch({ type: "DISPENSER_JAMMED" });
-                  }
-                  setIsProcessing(false);
-                }, 2000);
-              }, 500);
-            } else {
-              dispatch({
-                type: "CARD_DECLINED",
-                reason: "잔액 부족 또는 승인 거부",
-              });
-              setIsProcessing(false);
-            }
-          }, 1500);
-        }, 800);
-      } else {
-        // 현금 결제 (즉시 승인)
-        setTimeout(() => {
-          dispatch({ type: "DISPENSER_START", item: selectedItem });
-          setTimeout(() => {
-            if (Math.random() > 0.05) {
-              dispatch({ type: "DISPENSER_COMPLETED" });
-              setTimeout(() => {
-                dispatch({ type: "DISPENSER_RESET" });
-              }, 500);
-            } else {
-              dispatch({ type: "DISPENSER_JAMMED" });
-            }
-            setIsProcessing(false);
-          }, 2000);
-        }, 500);
-      }
-    }
-  }, [
+  // Custom hooks for side effects
+  useTimerEffect(state.timer, dispatch);
+  useInsufficientBalanceTimer(state.insufficientBalanceTime, dispatch);
+  usePaymentProcessor(
     state.machineState,
     state.paymentMethod,
     state.selectedItem,
     isProcessing,
-  ]);
-
-  // 거스름돈 반환
-  useEffect(() => {
-    if (
-      state.machineState === VendingMachineState.RETURNING_CHANGE &&
-      state.changeDispenser.state === ChangeDispenserState.IDLE &&
-      !isProcessing
-    ) {
-      const changeAmount = state.currentBalance;
-      if (changeAmount > 0) {
-        dispatch({ type: "START_CHANGE_DISPENSING", amount: changeAmount });
-
-        // 거스름돈을 1000원, 500원 단위로 분해하여 순차 반환
-        let remaining = changeAmount;
-        const bills = [];
-        const coins = [];
-
-        // 1000원 지폐
-        while (remaining >= 1000) {
-          bills.push(1000);
-          remaining -= 1000;
-        }
-
-        // 500원 동전
-        while (remaining >= 500) {
-          coins.push(500);
-          remaining -= 500;
-        }
-
-        // 순차적으로 반환 (300ms 간격)
-        let delay = 500;
-        bills.forEach((bill) => {
-          setTimeout(() => {
-            dispatch({ type: "DISPENSE_CHANGE_BILL", amount: bill });
-          }, delay);
-          delay += 300;
-        });
-
-        coins.forEach((coin) => {
-          setTimeout(() => {
-            dispatch({ type: "DISPENSE_CHANGE_COIN", amount: coin });
-          }, delay);
-          delay += 300;
-        });
-
-        // 모든 반환 완료 후
-        setTimeout(() => {
-          dispatch({ type: "CHANGE_DISPENSING_COMPLETE" });
-          setTimeout(() => {
-            dispatch({ type: "CHANGE_DISPENSER_RESET" });
-            dispatch({ type: "RETURN_CHANGE_COMPLETE" });
-          }, 500);
-        }, delay);
-      } else {
-        // 거스름돈이 없으면 바로 완료
-        setTimeout(() => {
-          dispatch({ type: "RETURN_CHANGE_COMPLETE" });
-        }, 300);
-      }
-    }
-  }, [
+    setIsProcessing,
+    dispatch
+  );
+  useChangeDispenser(
     state.machineState,
-    state.changeDispenser.state,
+    state.changeDispenser,
     state.currentBalance,
     isProcessing,
-  ]);
+    dispatch
+  );
 
-  const getStateColor = (currentState: VendingMachineStateValue) => {
-    const colors: Record<VendingMachineStateValue, string> = {
-      [VendingMachineState.IDLE]: "bg-gray-500",
-      [VendingMachineState.PAYMENT_IN_PROGRESS]: "bg-blue-500",
-      [VendingMachineState.ITEM_SELECTED]: "bg-yellow-500",
-      [VendingMachineState.DISPENSING]: "bg-green-500",
-      [VendingMachineState.RETURNING_CHANGE]: "bg-purple-500",
-      [VendingMachineState.ERROR]: "bg-red-500",
-      [VendingMachineState.OUT_OF_SERVICE]: "bg-red-700",
-    };
-    return colors[currentState] ?? "bg-gray-500";
-  };
+  // Payment handlers using useMemo to avoid recreating on every render
+  const handleBillInsert = useMemo(
+    () => createBillInsertHandler(dispatch),
+    [dispatch]
+  );
+  const handleCoinInsert = useMemo(
+    () => createCoinInsertHandler(dispatch),
+    [dispatch]
+  );
+  const handleCardInsert = useMemo(
+    () => createCardInsertHandler(dispatch),
+    [dispatch]
+  );
 
-  const getStateText = (currentState: VendingMachineStateValue) => {
-    const texts: Record<VendingMachineStateValue, string> = {
-      [VendingMachineState.IDLE]: "대기",
-      [VendingMachineState.PAYMENT_IN_PROGRESS]: "결제 진행중",
-      [VendingMachineState.ITEM_SELECTED]: "음료 선택됨",
-      [VendingMachineState.DISPENSING]: "배출중",
-      [VendingMachineState.RETURNING_CHANGE]: "거스름돈 반환",
-      [VendingMachineState.ERROR]: "오류",
-      [VendingMachineState.OUT_OF_SERVICE]: "고장",
-    };
-    return texts[currentState] ?? currentState;
-  };
-
-  const remainingSeconds =
-    state.timer.remainingTime > 0
-      ? Math.ceil(state.timer.remainingTime / 1000)
-      : 0;
+  const remainingSeconds = calculateRemainingSeconds(state.timer.remainingTime);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-8">
@@ -318,7 +85,7 @@ function Simulator() {
           🥤 자판기 시뮬레이터 (모듈화)
         </h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* 왼쪽: 입력 모듈 */}
           <div className="lg:col-span-1 space-y-4">
             {/* 디스플레이 */}
@@ -587,7 +354,7 @@ function Simulator() {
           </div>
 
           {/* 중앙: 음료 메뉴 & 선택 */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="lg:col-span-2 space-y-4">
             {/* 음료 메뉴 + 선택 버튼 */}
             <div className="bg-slate-800 rounded-lg p-6 border-2 border-slate-700">
               <h3 className="text-white font-bold mb-4 text-xl flex items-center gap-2">

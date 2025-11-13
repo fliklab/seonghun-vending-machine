@@ -7,7 +7,7 @@ import NotFoundPage from "./pages/not-found/NotFoundPage";
 const navItems = [
   { label: "홈", to: "/" },
   { label: "시뮬레이터", to: "/simulator" },
-  { label: "시스템 아키텍처", to: "/architecture" },
+  { label: "아키텍처", to: "/architecture" },
 ];
 
 const Layout = () => {

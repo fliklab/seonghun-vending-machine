@@ -1,10 +1,10 @@
-import type { MachineReducer } from "../types";
+import type { MachineReducer } from "@shared/types";
 import {
   VendingMachineState,
   CoinValidatorState,
   TimerState,
   PaymentMethod,
-} from "../states";
+} from "@shared/states";
 
 // 동전 인식 모듈 리듀서
 export const coinValidatorReducer: MachineReducer = (context, action, addLog) => {

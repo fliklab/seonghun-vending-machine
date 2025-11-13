@@ -1,11 +1,11 @@
-import type { MachineReducer } from "../types";
+import type { MachineReducer } from "@shared/types";
 import {
   VendingMachineState,
   TimerState,
   PaymentMethod,
   ErrorCode,
-} from "../states";
-import { PAYMENT_TIMEOUT } from "../constants";
+} from "@shared/states";
+import { PAYMENT_TIMEOUT } from "@shared/constants";
 
 // 거래 완료 및 취소 리듀서
 export const transactionReducer: MachineReducer = (context, action, addLog) => {

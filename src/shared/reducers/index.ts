@@ -2,14 +2,14 @@ import type {
   VendingMachineContext,
   VendingMachineAction,
   AddLog,
-} from "../types";
+} from "@shared/types";
 import {
   VendingMachineState,
   BillValidatorState,
   CoinValidatorState,
   CardReaderState,
-} from "../states";
-import { initialState } from "../constants";
+} from "@shared/states";
+import { initialState } from "@shared/constants";
 import { billValidatorReducer } from "./billValidator";
 import { coinValidatorReducer } from "./coinValidator";
 import { cardReaderReducer } from "./cardReader";

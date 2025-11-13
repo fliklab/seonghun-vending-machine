@@ -1,4 +1,12 @@
-import type { ModuleStatusPanelProps } from "../../types";
+import { LucideIcon } from "lucide-react";
+
+export type ModuleStatusPanelProps = {
+  title: string;
+  state: string;
+  icon: LucideIcon;
+  color: string;
+  details?: string[];
+};
 
 export function ModuleStatusPanel({
   title,

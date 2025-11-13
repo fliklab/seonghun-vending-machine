@@ -110,6 +110,20 @@ function StateDiagram() {
                     <div className="text-yellow-400">모터 제어</div>
                   </div>
                 </div>
+                <div className="bg-slate-800 p-3 rounded">
+                  <div className="font-bold text-white mb-2">
+                    💰 거스름돈 반환기
+                  </div>
+                  <div className="text-xs space-y-1">
+                    <div>• IDLE → CALCULATING</div>
+                    <div>• → DISPENSING</div>
+                    <div>• → COMPLETED</div>
+                    <div>• → INSUFFICIENT (부족)</div>
+                    <div className="text-yellow-400">
+                      1000원 지폐 + 500원 동전
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -196,6 +210,33 @@ function StateDiagram() {
               <div className="text-white text-2xl">↓</div>
             </div>
 
+            {/* 거스름돈 재고 검증 */}
+            <div className="bg-slate-700 rounded-lg p-4">
+              <div className="text-yellow-400 text-center font-bold mb-3">
+                거스름돈 재고 검증 (현금 결제만)
+              </div>
+              <div className="flex justify-center gap-8 text-sm">
+                <div className="text-center">
+                  <div className="text-green-400">충분한 거스름돈</div>
+                  <div className="text-white text-xs mt-1">
+                    1000원×{"{n}"}장 + 500원×{"{m}"}개
+                  </div>
+                  <div className="text-white">→ ITEM_SELECTED</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-red-400">거스름돈 부족 (E101)</div>
+                  <div className="text-white text-xs mt-1">
+                    필요: 1000원×{"{n}"}장 or 500원×{"{m}"}개
+                  </div>
+                  <div className="text-white">→ OUT_OF_SERVICE</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <div className="text-white text-2xl">↓</div>
+            </div>
+
             {/* DISPENSING + 배출기 */}
             <div className="flex items-center justify-center gap-4">
               <div className="bg-green-500 text-white px-8 py-4 rounded-lg font-bold text-lg shadow-lg">
@@ -216,6 +257,17 @@ function StateDiagram() {
                 <div className="text-white text-2xl">↓</div>
                 <div className="bg-purple-500 text-white px-4 py-2 rounded font-bold">
                   RETURNING_CHANGE
+                </div>
+                <div className="bg-slate-700 rounded p-3 mt-2 text-xs">
+                  <div className="text-purple-300 font-bold mb-1">
+                    거스름돈 반환기 작동:
+                  </div>
+                  <div className="text-white">1. CALCULATING (계산)</div>
+                  <div className="text-slate-400 ml-2">• 1000원 지폐 n장</div>
+                  <div className="text-slate-400 ml-2">• 500원 동전 m개</div>
+                  <div className="text-white mt-1">2. DISPENSING (반환)</div>
+                  <div className="text-slate-400 ml-2">• 재고 차감</div>
+                  <div className="text-white mt-1">3. COMPLETED</div>
                 </div>
                 <div className="text-white text-2xl mt-2">↓</div>
                 <div className="bg-gray-500 text-white px-4 py-2 rounded font-bold">

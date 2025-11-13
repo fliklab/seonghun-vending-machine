@@ -1,6 +1,6 @@
-import type { MachineReducer } from "../types";
-import { VendingMachineState, ErrorCode } from "../states";
-import { initialState } from "../constants";
+import type { MachineReducer } from "@shared/types";
+import { VendingMachineState, ErrorCode } from "@shared/states";
+import { initialState } from "@shared/constants";
 
 // 시스템 관리 리듀서 (관리자 기능)
 export const systemReducer: MachineReducer = (context, action, addLog) => {

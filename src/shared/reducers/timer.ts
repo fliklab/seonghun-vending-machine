@@ -1,6 +1,6 @@
-import type { MachineReducer } from "../types";
-import { VendingMachineState, TimerState } from "../states";
-import { PAYMENT_TIMEOUT } from "../constants";
+import type { MachineReducer } from "@shared/types";
+import { VendingMachineState, TimerState } from "@shared/states";
+import { PAYMENT_TIMEOUT } from "@shared/constants";
 
 // 타이머 모듈 리듀서
 export const timerReducer: MachineReducer = (context, action, addLog) => {

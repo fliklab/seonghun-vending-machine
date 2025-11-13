@@ -1,11 +1,11 @@
-import type { MachineReducer } from "../types";
+import type { MachineReducer } from "@shared/types";
 import {
   VendingMachineState,
   CardReaderState,
   TimerState,
   PaymentMethod,
   ErrorCode,
-} from "../states";
+} from "@shared/states";
 
 // 카드 리더기 리듀서
 export const cardReaderReducer: MachineReducer = (context, action, addLog) => {

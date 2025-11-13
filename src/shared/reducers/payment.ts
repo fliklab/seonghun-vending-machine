@@ -1,11 +1,11 @@
-import type { MachineReducer } from "../types";
+import type { MachineReducer } from "@shared/types";
 import {
   VendingMachineState,
   InventorySensorState,
   PaymentMethod,
   ErrorCode,
-} from "../states";
-import { DRINKS } from "../constants";
+} from "@shared/states";
+import { DRINKS } from "@shared/constants";
 
 // 결제 처리 리듀서 (음료 선택 및 검증)
 export const paymentReducer: MachineReducer = (context, action, addLog) => {

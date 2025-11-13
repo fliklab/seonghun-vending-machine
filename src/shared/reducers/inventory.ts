@@ -1,5 +1,5 @@
-import type { MachineReducer } from "../types";
-import { InventorySensorState } from "../states";
+import type { MachineReducer } from "@shared/types";
+import { InventorySensorState } from "@shared/states";
 
 // 재고 센서 리듀서
 export const inventorySensorReducer: MachineReducer = (context, action, addLog) => {

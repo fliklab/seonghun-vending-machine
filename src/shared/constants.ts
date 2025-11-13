@@ -1,4 +1,4 @@
-import type { Drink, InventoryRecord, VendingMachineContext } from "./types";
+import type { Drink, InventoryRecord, VendingMachineContext } from "@shared/types";
 import {
   VendingMachineState,
   BillValidatorState,
@@ -10,7 +10,7 @@ import {
   ChangeDispenserState,
   PaymentMethod,
   ErrorCode,
-} from "./states";
+} from "@shared/states";
 
 export const DRINKS: Drink[] = [
   { id: "1", name: "콜라", price: 1500, stock: 10 },
